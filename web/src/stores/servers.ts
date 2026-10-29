@@ -14,11 +14,16 @@ export const useServerStore = defineStore('servers', () => {
     loaded = true
   }
 
+  function sync(rows: GameServer[]) {
+    list.value = rows
+    loaded = true
+  }
+
   const options = computed(() =>
     list.value
       .filter((s) => s.status !== 3)
       .map((s) => ({ value: s.server_id, label: `${s.server_id} - ${s.name}` })),
   )
 
-  return { list, options, load }
+  return { list, options, load, sync }
 })

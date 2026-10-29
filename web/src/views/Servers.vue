@@ -14,11 +14,12 @@ const canEdit = store.hasRole('admin')
 
 const list = ref<GameServer[]>([])
 const loading = ref(false)
+const saving = ref(false)
 
 async function load() {
   loading.value = true
   try {
-    list.value = await serverApi.list(true)
+    applyLocal(await serverApi.list(true))
   } finally {
     loading.value = false
   }
@@ -153,6 +154,11 @@ async function openEdit(row: GameServer) {
   formRef.value?.clearValidate()
 }
 
+function applyLocal(rows: GameServer[]) {
+  list.value = rows
+  serverStore.sync(rows)
+}
+
 async function submit() {
   await formRef.value?.validate()
   const payload: GameServerForm = {
@@ -162,22 +168,31 @@ async function submit() {
     open_at: form.open_at,
     remark: form.remark,
   }
-  if (editingId.value) {
-    await serverApi.update(editingId.value, payload)
-    ElMessage.success('保存成功')
-  } else {
-    await serverApi.create(payload)
-    ElMessage.success('创建成功')
+  saving.value = true
+  try {
+    if (editingId.value) {
+      await serverApi.update(editingId.value, payload)
+      applyLocal(list.value.map((row) => (
+        row.id === editingId.value ? { ...row, ...payload } : row
+      )))
+      ElMessage.success('保存成功')
+    } else {
+      const created = await serverApi.create(payload)
+      applyLocal([...list.value, { ...created, online: 0, reachable: false, mock: list.value.some((s) => s.mock) }])
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+  } finally {
+    saving.value = false
   }
-  dialogVisible.value = false
-  await Promise.all([load(), serverStore.load(true)])
 }
 
 async function remove(row: GameServer) {
-  await ElMessageBox.confirm(`确定删除区服 ${row.server_id} - ${row.name}？`, '提示', { type: 'warning' })
+  const label = row.server_id ? `${row.server_id} - ${row.name}` : row.name
+  await ElMessageBox.confirm(`确定删除区服 ${label}？`, '提示', { type: 'warning' })
   await serverApi.remove(row.id)
+  applyLocal(list.value.filter((s) => s.id !== row.id))
   ElMessage.success('已删除')
-  await Promise.all([load(), serverStore.load(true)])
 }
 
 onMounted(load)
@@ -276,7 +291,7 @@ onMounted(load)
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">{{ editingId ? '保存' : '创建' }}</el-button>
+        <el-button type="primary" :loading="saving" @click="submit">{{ editingId ? '保存' : '创建' }}</el-button>
       </template>
     </el-dialog>
   </div>

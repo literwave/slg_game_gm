@@ -85,9 +85,6 @@ func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (
 		Name: req.Name, GMAddr: req.GMAddr, Status: req.Status,
 		OpenAt: req.OpenAt, Remark: req.Remark, CreatedAt: now, UpdatedAt: now,
 	}
-	if st, err := s.pullStatus(ctx, gameclient.Target{Addr: req.GMAddr}); err == nil && st.ServerID > 0 {
-		gs.ServerID = st.ServerID
-	}
 	if err := s.repo.Create(ctx, gs); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
 			return nil, errcode.Conflict.WithMsg("该区服号已接入")
@@ -98,18 +95,10 @@ func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (
 }
 
 func (s *GameServerService) Update(ctx context.Context, id primitive.ObjectID, req dto.GameServerReq) error {
-	set := bson.M{
+	err := s.repo.Update(ctx, id, bson.M{
 		"name": req.Name, "gm_addr": req.GMAddr, "status": req.Status,
 		"open_at": req.OpenAt, "remark": req.Remark, "updated_at": time.Now(),
-	}
-	gs, err := s.repo.FindByID(ctx, id)
-	if err != nil {
-		return repoErr(err)
-	}
-	if st, err := s.pullStatus(ctx, gameclient.Target{ServerID: gs.ServerID, Addr: req.GMAddr}); err == nil && st.ServerID > 0 {
-		set["server_id"] = st.ServerID
-	}
-	err = s.repo.Update(ctx, id, set)
+	})
 	if errors.Is(err, repository.ErrDuplicate) {
 		return errcode.Conflict.WithMsg("该区服号已接入")
 	}
