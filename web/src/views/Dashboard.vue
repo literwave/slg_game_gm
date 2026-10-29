@@ -137,24 +137,26 @@ onMounted(load)
         </div>
       </template>
       <el-table :data="stats?.servers ?? []">
-        <el-table-column label="区服号" min-width="100">
-          <template #default="{ row }"><span class="code-tag">{{ row.server_id }}</span></template>
-        </el-table-column>
-        <el-table-column prop="name" label="名称" />
-        <el-table-column label="状态" min-width="100">
+        <el-table-column label="服务器ID" min-width="120">
           <template #default="{ row }">
-            <el-tag :type="serverStatusOf(row.status).tag" size="small">{{ serverStatusOf(row.status).label }}</el-tag>
+            <span v-if="row.server_id" class="code-tag">{{ row.server_id }}</span>
+            <span v-else style="color: var(--gm-text-secondary)">-</span>
           </template>
         </el-table-column>
-        <el-table-column label="连接" min-width="100">
+        <el-table-column prop="name" label="服务器名" min-width="140" />
+        <el-table-column label="开服状态" min-width="120">
           <template #default="{ row }">
-            <el-icon :style="{ verticalAlign: '-2px', color: row.reachable ? 'var(--el-color-success)' : 'var(--el-color-danger)' }">
-              <component :is="row.reachable ? 'CircleCheckFilled' : 'CircleCloseFilled'" />
-            </el-icon>
-            {{ row.reachable ? '正常' : '异常' }}
+            <el-tag :type="serverStatusOf(row.status, row.open_at).tag" size="small">
+              {{ serverStatusOf(row.status, row.open_at).label }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="在线人数" min-width="140">
+        <el-table-column label="连通" min-width="110">
+          <template #default="{ row }">
+            <span class="status-dot" :class="row.reachable ? 'success' : 'danger'">{{ row.reachable ? '可达' : '不可达' }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="在线人数" min-width="110">
           <template #default="{ row }">{{ formatNumber(row.online) }}</template>
         </el-table-column>
         <el-table-column label="开服时间" min-width="180">

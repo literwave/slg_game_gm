@@ -64,7 +64,7 @@ onMounted(load)
       <el-table v-loading="loading" :data="list">
         <el-table-column type="expand">
           <template #default="{ row }">
-            <div style="padding: 4px 48px 12px">
+            <div class="log-detail">
               <div v-if="row.query" class="kv-item" style="margin-bottom: 8px">
                 <span class="k">Query：</span><span class="code-tag">{{ row.query }}</span>
               </div>
@@ -108,6 +108,14 @@ onMounted(load)
 </template>
 
 <style scoped>
+.log-detail {
+  padding: 4px 48px 12px;
+}
+@media (max-width: 768px) {
+  .log-detail {
+    padding: 4px 8px 12px;
+  }
+}
 .log-body {
   margin: 0;
   padding: 10px 12px;

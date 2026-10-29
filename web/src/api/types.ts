@@ -41,10 +41,10 @@ export interface GameServer {
   updated_at: string
   online: number
   reachable: boolean
+  mock: boolean
 }
 
 export interface GameServerForm {
-  server_id: number
   name: string
   gm_addr: string
   status: ServerStatus

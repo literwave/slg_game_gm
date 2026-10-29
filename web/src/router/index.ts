@@ -21,7 +21,7 @@ export const menuRoutes: RouteRecordRaw[] = [
   { path: 'players', name: 'players', component: () => import('@/views/Players.vue'), meta: { title: '玩家管理', desc: '按区服查询玩家，进行封禁、踢下线和资源调整', icon: 'User', group: '运营管理' } },
   { path: 'mails', name: 'mails', component: () => import('@/views/Mails.vue'), meta: { title: '邮件发放', desc: '向指定玩家或区服发送系统邮件，可附带道具奖励', icon: 'Message', group: '运营管理' } },
   { path: 'announcements', name: 'announcements', component: () => import('@/views/Announcements.vue'), meta: { title: '公告管理', desc: '编辑跑马灯公告，并推送到指定区服', icon: 'Bell', group: '运营管理' } },
-  { path: 'servers', name: 'servers', component: () => import('@/views/Servers.vue'), meta: { title: '区服管理', desc: '维护区服信息与 GM 接口地址，查看实时在线人数', icon: 'Monitor', group: '服务管理' } },
+  { path: 'servers', name: 'servers', component: () => import('@/views/Servers.vue'), meta: { title: '区服管理', desc: '维护区服信息与服务器地址，查看实时在线人数', icon: 'Monitor', group: '服务管理' } },
   { path: 'admins', name: 'admins', component: () => import('@/views/Admins.vue'), meta: { title: '账号管理', desc: '管理后台账号、角色权限与登录状态', icon: 'Avatar', group: '系统管理', role: 'super_admin' } },
   { path: 'oplogs', name: 'oplogs', component: () => import('@/views/OpLogs.vue'), meta: { title: '操作日志', desc: '所有写操作的审计记录，保留 180 天', icon: 'Document', group: '系统管理', role: 'admin' } },
 ]

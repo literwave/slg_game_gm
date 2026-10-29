@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter, type RouteRecordRaw } from 'vue-router'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { menuRoutes } from '@/router'
@@ -37,6 +37,31 @@ const menus = computed(() => {
 const openedGroups = computed(() => menus.value.filter((m) => m.group).map((m) => m.group!))
 
 const collapsed = ref(false)
+const isMobile = ref(false)
+const mobileOpen = ref(false)
+const asideWidth = computed(() => (isMobile.value || !collapsed.value ? '220px' : '64px'))
+
+function syncLayout() {
+  const next = window.innerWidth < 768
+  if (next !== isMobile.value) {
+    isMobile.value = next
+    mobileOpen.value = false
+  }
+}
+
+function toggleNav() {
+  if (isMobile.value) mobileOpen.value = !mobileOpen.value
+  else collapsed.value = !collapsed.value
+}
+
+onMounted(() => {
+  syncLayout()
+  window.addEventListener('resize', syncLayout)
+})
+onUnmounted(() => window.removeEventListener('resize', syncLayout))
+watch(() => route.path, () => {
+  mobileOpen.value = false
+})
 
 function onCommand(cmd: string) {
   if (cmd === 'logout') {
@@ -72,13 +97,14 @@ async function submitPassword() {
 
 <template>
   <el-container class="layout">
-    <el-aside :width="collapsed ? '64px' : '220px'" class="aside">
+    <div v-if="isMobile && mobileOpen" class="mask" @click="mobileOpen = false" />
+    <el-aside :width="asideWidth" class="aside" :class="{ 'is-mobile': isMobile, 'is-open': mobileOpen }">
       <div class="logo">
         <div class="logo-mark">GM</div>
         <span v-show="!collapsed" class="logo-text">游戏管理后台</span>
       </div>
       <el-scrollbar class="menu-scroll">
-        <el-menu :default-active="route.path" :default-openeds="openedGroups" :collapse="collapsed"
+        <el-menu :default-active="route.path" :default-openeds="openedGroups" :collapse="!isMobile && collapsed"
           :collapse-transition="false" router class="side-menu">
           <template v-for="entry in menus" :key="entry.group ?? entry.items[0].path">
             <el-sub-menu v-if="entry.group" :index="entry.group">
@@ -103,8 +129,8 @@ async function submitPassword() {
     <el-container class="body">
       <el-header class="header">
         <div class="header-left">
-          <el-icon class="collapse-btn" @click="collapsed = !collapsed">
-            <component :is="collapsed ? 'Expand' : 'Fold'" />
+          <el-icon class="collapse-btn" @click="toggleNav">
+            <component :is="isMobile ? 'Menu' : collapsed ? 'Expand' : 'Fold'" />
           </el-icon>
           <el-breadcrumb separator="/">
             <el-breadcrumb-item :to="{ path: '/' }">首页</el-breadcrumb-item>
@@ -149,14 +175,32 @@ async function submitPassword() {
 <style scoped>
 .layout {
   height: 100%;
+  overflow: hidden;
+}
+.mask {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+  background: rgba(0, 0, 0, 0.35);
 }
 .aside {
   display: flex;
   flex-direction: column;
   background: #fff;
   border-right: 1px solid var(--gm-border);
-  transition: width 0.2s;
+  transition: width 0.2s, transform 0.2s;
   overflow: hidden;
+}
+.aside.is-mobile {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 20;
+  height: 100%;
+  transform: translateX(-100%);
+  box-shadow: 4px 0 16px rgba(0, 0, 0, 0.08);
+}
+.aside.is-mobile.is-open {
+  transform: translateX(0);
 }
 .logo {
   display: flex;
@@ -210,12 +254,14 @@ async function submitPassword() {
 }
 .body {
   min-width: 0;
+  overflow: hidden;
 }
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   height: 60px;
+  padding: 0 16px;
   background: #fff;
   border-bottom: 1px solid var(--gm-border);
 }
@@ -250,5 +296,17 @@ async function submitPassword() {
 .main {
   background: var(--gm-bg);
   padding: 24px;
+  overflow: auto;
+}
+@media (max-width: 768px) {
+  .header-left :deep(.el-breadcrumb) {
+    display: none;
+  }
+  .user-name {
+    display: none;
+  }
+  .main {
+    padding: 16px 12px;
+  }
 }
 </style>

@@ -45,13 +45,20 @@ export const roleTag: Record<Role, TagType> = {
 }
 
 export const serverStatusOptions: { value: ServerStatus; label: string; tag: TagType }[] = [
-  { value: 0, label: '维护', tag: 'warning' },
-  { value: 1, label: '正常', tag: 'success' },
+  { value: 0, label: '维护中', tag: 'warning' },
+  { value: 1, label: '已开服', tag: 'success' },
   { value: 2, label: '火爆', tag: 'danger' },
-  { value: 3, label: '关闭', tag: 'info' },
+  { value: 3, label: '已关服', tag: 'info' },
 ]
 
-export const serverStatusOf = (s: ServerStatus) => serverStatusOptions.find((o) => o.value === s)!
+export const serverStatusOf = (s: ServerStatus, openAt?: string) => {
+  const base = serverStatusOptions.find((o) => o.value === s) ?? serverStatusOptions[1]
+  // 已开服但开服时间还没到，展示为未开服
+  if (s === 1 && openAt && dayjs(openAt).isValid() && dayjs(openAt).isAfter(dayjs())) {
+    return { value: s, label: '未开服', tag: 'primary' as TagType }
+  }
+  return base
+}
 
 export const resourceLabels: Record<string, string> = {
   gold: '金币',

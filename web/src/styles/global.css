@@ -20,9 +20,16 @@ body,
 #app {
   margin: 0;
   height: 100%;
+  min-width: 0;
   color: var(--gm-text);
   font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--gm-bg);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
 /* ---------- 页面标题 ---------- */
@@ -30,6 +37,7 @@ body,
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -52,11 +60,18 @@ body,
 .el-card {
   --el-card-border-radius: 10px;
   --el-card-border-color: transparent;
+  max-width: 100%;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
 }
 .el-card__header {
   padding: 14px 20px;
   border-bottom: 1px solid var(--gm-border);
+}
+.el-card__body {
+  overflow-x: auto;
+}
+.filter-card .el-card__body {
+  overflow: visible;
 }
 
 .page-card {
@@ -82,7 +97,7 @@ body,
 /* ---------- 渐变统计卡片 ---------- */
 .stat-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -167,11 +182,21 @@ body,
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 1 1 220px;
+  min-width: 0;
+  max-width: 420px;
   font-size: 13px;
   color: #5c6370;
 }
 .filter-item > label {
   flex-shrink: 0;
+}
+.filter-item > .el-input,
+.filter-item > .el-select,
+.filter-item > .el-date-editor {
+  flex: 1;
+  min-width: 0;
+  width: auto !important;
 }
 
 .toolbar {
@@ -187,6 +212,7 @@ body,
 
 .table-card .el-card__body {
   padding: 4px 20px 20px;
+  overflow-x: auto;
 }
 .list-count {
   padding: 1px 8px;
@@ -198,6 +224,7 @@ body,
 }
 
 .el-table {
+  width: 100% !important;
   --el-table-header-bg-color: #f7f8fa;
   --el-table-header-text-color: #5c6370;
   --el-table-row-hover-bg-color: #f7f8ff;
@@ -207,17 +234,27 @@ body,
   font-weight: 600;
 }
 .el-table .el-table__cell {
-  padding: 13px 0;
+  padding: 16px 12px;
 }
 /* 默认居中；主信息列加 class-name / label-class-name="col-left" 保持左对齐 */
 .el-table .el-table__cell .cell {
+  padding: 0;
   text-align: center;
+  white-space: nowrap;
 }
 .el-table .el-table__cell.col-left .cell {
   text-align: left;
 }
 .el-table .el-table__cell:not(.col-left) .cell-user {
   justify-content: center;
+}
+/* 无纵向滚动时去掉表头滚动条占位，避免末列表头和内容错位 */
+.el-table col[name='gutter'] {
+  display: none;
+  width: 0;
+}
+.el-table th.gutter {
+  display: none;
 }
 
 /* 头像 + 主副标题，用于表格首列 */
@@ -270,5 +307,60 @@ body,
 .pager {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
   margin-top: 16px;
+}
+
+.el-dialog {
+  width: min(640px, calc(100vw - 24px)) !important;
+}
+.el-form-item__label {
+  white-space: nowrap;
+}
+.el-dialog .el-select,
+.el-dialog .el-date-editor {
+  width: 100%;
+}
+.el-date-editor.el-input,
+.el-date-editor.el-input__wrapper {
+  max-width: 100%;
+}
+
+@media (max-width: 992px) {
+  .kv-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    align-items: flex-start;
+  }
+  .page-header h1 {
+    font-size: 18px;
+  }
+  .page-actions {
+    width: 100%;
+  }
+  .filter-item {
+    flex: 1 1 100%;
+    max-width: 100%;
+  }
+  .stat-card .value {
+    font-size: 24px;
+  }
+  .table-card .el-card__body,
+  .filter-card .el-card__body,
+  .el-card__header {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .pager {
+    justify-content: center;
+  }
+  .pager .el-pagination {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }

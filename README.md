@@ -154,7 +154,7 @@ MongoDB 集合：`admin_users`、`game_servers`、`mails`、`announcements`、`o
 
 | cmd | 请求体 | data |
 | --- | --- | --- |
-| `status` | `{}` | `{"online": 在线人数, "registered": 注册人数}` |
+| `status` | `{}` | `{"server_id": 区服号, "online": 在线人数, "registered": 注册人数}` |
 | `player/search` | `{"keyword": "昵称或玩家ID"}` | `Player[]`，建议最多返回 100 条 |
 | `player/get` | `{"player_id": 1001000001}` | `Player` |
 | `player/ban` | `{"player_id", "until", "reason"}`，`until` 省略表示永久封禁 | 无 |

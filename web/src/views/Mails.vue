@@ -128,7 +128,7 @@ onMounted(() => {
                 </div>
                 <div class="kv-item"><span class="k">有效期：</span><span class="v">{{ row.expire_days || '默认' }} 天</span></div>
               </div>
-              <el-table :data="row.results" size="small" style="width: 520px; margin-top: 12px">
+              <el-table :data="row.results" size="small" class="mail-results">
                 <el-table-column prop="server_id" label="区服" min-width="100" />
                 <el-table-column label="结果" min-width="90">
                   <template #default="{ row: r }">
@@ -229,6 +229,18 @@ onMounted(() => {
 <style scoped>
 .mail-detail {
   padding: 4px 48px 12px;
+}
+.mail-results {
+  max-width: 520px;
+  margin-top: 12px;
+}
+@media (max-width: 768px) {
+  .mail-detail {
+    padding: 4px 8px 12px;
+  }
+  .mail-results {
+    max-width: 100%;
+  }
 }
 </style>
 

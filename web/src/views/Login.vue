@@ -54,7 +54,7 @@ async function submit() {
   background: var(--gm-gradient);
 }
 .login-card {
-  width: 380px;
+  width: min(380px, calc(100vw - 32px));
 }
 h2 {
   text-align: center;
