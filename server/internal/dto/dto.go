@@ -66,18 +66,18 @@ type ResetPasswordReq struct {
 // ---------- 区服 ----------
 
 type GameServerReq struct {
-	ServerID int                `json:"server_id" binding:"required,min=1"`
-	Name     string             `json:"name" binding:"required,max=32"`
-	GMAddr   string             `json:"gm_addr" binding:"required,url"`
-	Status   model.ServerStatus `json:"status" binding:"min=0,max=3"`
-	OpenAt   time.Time          `json:"open_at"`
-	Remark   string             `json:"remark" binding:"max=256"`
+	Name   string             `json:"name" binding:"required,max=32"`
+	GMAddr string             `json:"gm_addr" binding:"required,url"`
+	Status model.ServerStatus `json:"status" binding:"min=0,max=3"`
+	OpenAt time.Time          `json:"open_at"`
+	Remark string             `json:"remark" binding:"max=256"`
 }
 
 type GameServerView struct {
 	model.GameServer
 	Online    int  `json:"online"`
 	Reachable bool `json:"reachable"`
+	Mock      bool `json:"mock"`
 }
 
 // ---------- 玩家 ----------

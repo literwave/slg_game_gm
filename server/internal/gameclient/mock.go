@@ -3,6 +3,7 @@ package gameclient
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
 	"math/rand"
 	"sort"
 	"strconv"
@@ -74,11 +75,21 @@ func clonePlayer(p *Player) Player {
 	return cp
 }
 
+func mockServerID(t Target) int {
+	if t.ServerID > 0 {
+		return t.ServerID
+	}
+	h := fnv.New32a()
+	_, _ = h.Write([]byte(t.Addr))
+	return int(h.Sum32()%9000) + 1000
+}
+
 func (m *mockClient) Status(_ context.Context, t Target) (*ServerStatus, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	ps := m.players(t.ServerID)
-	s := &ServerStatus{Registered: len(ps)}
+	sid := mockServerID(t)
+	ps := m.players(sid)
+	s := &ServerStatus{ServerID: sid, Registered: len(ps)}
 	for _, p := range ps {
 		if p.Online {
 			s.Online++

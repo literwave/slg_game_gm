@@ -61,7 +61,7 @@ func New(ctx context.Context, cfg *config.Config) (*App, error) {
 
 	jwt := jwtutil.NewManager(cfg.JWT.Secret, time.Duration(cfg.JWT.ExpireHours)*time.Hour)
 	adminSvc := service.NewAdminService(adminRepo, jwt)
-	serverSvc := service.NewGameServerService(serverRepo, game)
+	serverSvc := service.NewGameServerService(serverRepo, game, cfg.Game.Mock)
 	playerSvc := service.NewPlayerService(serverSvc, game)
 	mailSvc := service.NewMailService(mailRepo, serverSvc, game)
 	annSvc := service.NewAnnouncementService(annRepo, serverSvc, game)

@@ -20,9 +20,13 @@ func NewGameServerRepo(db *mongo.Database) *GameServerRepo {
 }
 
 func (r *GameServerRepo) EnsureIndexes(ctx context.Context) error {
+	_, _ = r.coll.Indexes().DropOne(ctx, "server_id_1")
 	return r.createIndexes(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "server_id", Value: 1}},
-		Options: options.Index().SetUnique(true),
+		Keys: bson.D{{Key: "server_id", Value: 1}},
+		Options: options.Index().
+			SetName("server_id_gt0_unique").
+			SetUnique(true).
+			SetPartialFilterExpression(bson.M{"server_id": bson.M{"$gt": 0}}),
 	})
 }
 

@@ -22,17 +22,35 @@ const statusProbeTimeout = 2 * time.Second
 type GameServerService struct {
 	repo *repository.GameServerRepo
 	game gameclient.Client
+	mock bool
 }
 
-func NewGameServerService(repo *repository.GameServerRepo, game gameclient.Client) *GameServerService {
-	return &GameServerService{repo: repo, game: game}
+func NewGameServerService(repo *repository.GameServerRepo, game gameclient.Client, mock bool) *GameServerService {
+	return &GameServerService{repo: repo, game: game, mock: mock}
 }
 
 func targetOf(s *model.GameServer) gameclient.Target {
 	return gameclient.Target{ServerID: s.ServerID, Addr: s.GMAddr}
 }
 
-// List 返回所有区服；withStatus 为 true 时并发拉取各服在线人数。
+func (s *GameServerService) pullStatus(ctx context.Context, t gameclient.Target) (*gameclient.ServerStatus, error) {
+	pctx, cancel := context.WithTimeout(ctx, statusProbeTimeout)
+	defer cancel()
+	return s.game.Status(pctx, t)
+}
+
+func (s *GameServerService) applyPulledID(ctx context.Context, v *dto.GameServerView, st *gameclient.ServerStatus) {
+	if st.ServerID <= 0 || st.ServerID == v.ServerID {
+		return
+	}
+	orig := v.ServerID
+	v.ServerID = st.ServerID
+	if err := s.repo.Update(ctx, v.ID, bson.M{"server_id": st.ServerID, "updated_at": time.Now()}); errors.Is(err, repository.ErrDuplicate) {
+		v.ServerID = orig
+	}
+}
+
+// List 返回所有区服；withStatus 为 true 时并发拉取各服在线人数和区服号。
 func (s *GameServerService) List(ctx context.Context, withStatus bool) ([]dto.GameServerView, error) {
 	servers, err := s.repo.ListAll(ctx, nil)
 	if err != nil {
@@ -42,17 +60,19 @@ func (s *GameServerService) List(ctx context.Context, withStatus bool) ([]dto.Ga
 	var wg sync.WaitGroup
 	for i := range servers {
 		views[i].GameServer = servers[i]
+		views[i].Mock = s.mock
 		if !withStatus || servers[i].Status == model.ServerClosed {
 			continue
 		}
 		wg.Add(1)
 		go func(v *dto.GameServerView) {
 			defer wg.Done()
-			pctx, cancel := context.WithTimeout(ctx, statusProbeTimeout)
-			defer cancel()
-			if st, err := s.game.Status(pctx, targetOf(&v.GameServer)); err == nil {
-				v.Online, v.Reachable = st.Online, true
+			st, err := s.pullStatus(ctx, targetOf(&v.GameServer))
+			if err != nil {
+				return
 			}
+			v.Online, v.Reachable = st.Online, true
+			s.applyPulledID(ctx, v, st)
 		}(&views[i])
 	}
 	wg.Wait()
@@ -62,12 +82,15 @@ func (s *GameServerService) List(ctx context.Context, withStatus bool) ([]dto.Ga
 func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (*model.GameServer, error) {
 	now := time.Now()
 	gs := &model.GameServer{
-		ServerID: req.ServerID, Name: req.Name, GMAddr: req.GMAddr, Status: req.Status,
+		Name: req.Name, GMAddr: req.GMAddr, Status: req.Status,
 		OpenAt: req.OpenAt, Remark: req.Remark, CreatedAt: now, UpdatedAt: now,
+	}
+	if st, err := s.pullStatus(ctx, gameclient.Target{Addr: req.GMAddr}); err == nil && st.ServerID > 0 {
+		gs.ServerID = st.ServerID
 	}
 	if err := s.repo.Create(ctx, gs); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
-			return nil, errcode.Conflict.WithMsg("区服号已存在")
+			return nil, errcode.Conflict.WithMsg("该区服号已接入")
 		}
 		return nil, err
 	}
@@ -75,12 +98,20 @@ func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (
 }
 
 func (s *GameServerService) Update(ctx context.Context, id primitive.ObjectID, req dto.GameServerReq) error {
-	err := s.repo.Update(ctx, id, bson.M{
-		"server_id": req.ServerID, "name": req.Name, "gm_addr": req.GMAddr, "status": req.Status,
+	set := bson.M{
+		"name": req.Name, "gm_addr": req.GMAddr, "status": req.Status,
 		"open_at": req.OpenAt, "remark": req.Remark, "updated_at": time.Now(),
-	})
+	}
+	gs, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return repoErr(err)
+	}
+	if st, err := s.pullStatus(ctx, gameclient.Target{ServerID: gs.ServerID, Addr: req.GMAddr}); err == nil && st.ServerID > 0 {
+		set["server_id"] = st.ServerID
+	}
+	err = s.repo.Update(ctx, id, set)
 	if errors.Is(err, repository.ErrDuplicate) {
-		return errcode.Conflict.WithMsg("区服号已存在")
+		return errcode.Conflict.WithMsg("该区服号已接入")
 	}
 	return repoErr(err)
 }

@@ -50,6 +50,7 @@ type Player struct {
 }
 
 type ServerStatus struct {
+	ServerID   int `json:"server_id"`
 	Online     int `json:"online"`
 	Registered int `json:"registered"`
 }
