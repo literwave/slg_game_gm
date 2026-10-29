@@ -39,44 +39,56 @@ func (s *GameServerService) pullStatus(ctx context.Context, t gameclient.Target)
 	return s.game.Status(pctx, t)
 }
 
-func (s *GameServerService) applyPulledID(ctx context.Context, v *dto.GameServerView, st *gameclient.ServerStatus) {
-	if st.ServerID <= 0 || st.ServerID == v.ServerID {
-		return
-	}
-	orig := v.ServerID
-	v.ServerID = st.ServerID
-	if err := s.repo.Update(ctx, v.ID, bson.M{"server_id": st.ServerID, "updated_at": time.Now()}); errors.Is(err, repository.ErrDuplicate) {
-		v.ServerID = orig
-	}
+func (s *GameServerService) viewOf(gs *model.GameServer) dto.GameServerView {
+	return dto.GameServerView{GameServer: *gs, Mock: s.mock}
 }
 
-// List 返回所有区服；withStatus 为 true 时并发拉取各服在线人数和区服号。
-func (s *GameServerService) List(ctx context.Context, withStatus bool) ([]dto.GameServerView, error) {
+// List 返回已保存的区服数据，不探测游戏服。
+func (s *GameServerService) List(ctx context.Context) ([]dto.GameServerView, error) {
 	servers, err := s.repo.ListAll(ctx, nil)
 	if err != nil {
 		return nil, err
 	}
 	views := make([]dto.GameServerView, len(servers))
-	var wg sync.WaitGroup
 	for i := range servers {
-		views[i].GameServer = servers[i]
-		views[i].Mock = s.mock
-		if !withStatus || servers[i].Status == model.ServerClosed {
-			continue
-		}
-		wg.Add(1)
-		go func(v *dto.GameServerView) {
-			defer wg.Done()
-			st, err := s.pullStatus(ctx, targetOf(&v.GameServer))
-			if err != nil {
-				return
-			}
-			v.Online, v.Reachable = st.Online, true
-			s.applyPulledID(ctx, v, st)
-		}(&views[i])
+		views[i] = s.viewOf(&servers[i])
 	}
-	wg.Wait()
 	return views, nil
+}
+
+// Probe 探测单个区服，写入连通、在线人数，并从游戏服回写区服号。
+func (s *GameServerService) Probe(ctx context.Context, id primitive.ObjectID) (*dto.GameServerView, error) {
+	gs, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, repoErr(err)
+	}
+	now := time.Now()
+	view := s.viewOf(gs)
+	st, err := s.pullStatus(ctx, targetOf(gs))
+	set := bson.M{"probed_at": now, "updated_at": now}
+	if err != nil {
+		set["reachable"] = false
+		set["online"] = 0
+		view.Reachable, view.Online, view.ProbedAt = false, 0, &now
+	} else {
+		set["reachable"] = true
+		set["online"] = st.Online
+		view.Reachable, view.Online, view.ProbedAt = true, st.Online, &now
+		if st.ServerID > 0 {
+			set["server_id"] = st.ServerID
+			view.ServerID = st.ServerID
+		}
+	}
+	if err := s.repo.Update(ctx, id, set); errors.Is(err, repository.ErrDuplicate) {
+		delete(set, "server_id")
+		view.ServerID = gs.ServerID
+		if err := s.repo.Update(ctx, id, set); err != nil {
+			return nil, repoErr(err)
+		}
+	} else if err != nil {
+		return nil, repoErr(err)
+	}
+	return &view, nil
 }
 
 func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (*model.GameServer, error) {
@@ -95,10 +107,20 @@ func (s *GameServerService) Create(ctx context.Context, req dto.GameServerReq) (
 }
 
 func (s *GameServerService) Update(ctx context.Context, id primitive.ObjectID, req dto.GameServerReq) error {
-	err := s.repo.Update(ctx, id, bson.M{
+	gs, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return repoErr(err)
+	}
+	set := bson.M{
 		"name": req.Name, "gm_addr": req.GMAddr, "status": req.Status,
 		"open_at": req.OpenAt, "remark": req.Remark, "updated_at": time.Now(),
-	})
+	}
+	if gs.GMAddr != req.GMAddr {
+		set["reachable"] = false
+		set["online"] = 0
+		set["probed_at"] = nil
+	}
+	err = s.repo.Update(ctx, id, set)
 	if errors.Is(err, repository.ErrDuplicate) {
 		return errcode.Conflict.WithMsg("该区服号已接入")
 	}

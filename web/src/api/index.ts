@@ -32,10 +32,11 @@ export const systemApi = {
 }
 
 export const serverApi = {
-  list: (withStatus = false) => get<GameServer[]>('/servers', { status: withStatus ? 1 : '' }),
+  list: () => get<GameServer[]>('/servers'),
   create: (data: GameServerForm) => post<GameServer>('/servers', data),
   update: (id: string, data: GameServerForm) => put(`/servers/${id}`, data),
   remove: (id: string) => del(`/servers/${id}`),
+  probe: (id: string) => post<GameServer>(`/servers/${id}/probe`),
 }
 
 const playerPath = (serverId: number, playerId: number) => `/players/${serverId}/${playerId}`

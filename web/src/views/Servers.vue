@@ -15,11 +15,12 @@ const canEdit = store.hasRole('admin')
 const list = ref<GameServer[]>([])
 const loading = ref(false)
 const saving = ref(false)
+const probing = ref<Record<string, boolean>>({})
 
 async function load() {
   loading.value = true
   try {
-    applyLocal(await serverApi.list(true))
+    applyLocal(await serverApi.list())
   } finally {
     loading.value = false
   }
@@ -171,14 +172,18 @@ async function submit() {
   saving.value = true
   try {
     if (editingId.value) {
+      const prev = list.value.find((row) => row.id === editingId.value)
       await serverApi.update(editingId.value, payload)
+      const addrChanged = prev?.gm_addr !== payload.gm_addr
       applyLocal(list.value.map((row) => (
-        row.id === editingId.value ? { ...row, ...payload } : row
+        row.id === editingId.value
+          ? { ...row, ...payload, ...(addrChanged ? { reachable: false, online: 0, probed_at: null } : {}) }
+          : row
       )))
       ElMessage.success('保存成功')
     } else {
       const created = await serverApi.create(payload)
-      applyLocal([...list.value, { ...created, online: 0, reachable: false, mock: list.value.some((s) => s.mock) }])
+      applyLocal([...list.value, { ...created, online: 0, reachable: false, probed_at: null, mock: list.value.some((s) => s.mock) }])
       ElMessage.success('创建成功')
     }
     dialogVisible.value = false
@@ -195,6 +200,18 @@ async function remove(row: GameServer) {
   ElMessage.success('已删除')
 }
 
+async function probe(row: GameServer) {
+  probing.value = { ...probing.value, [row.id]: true }
+  try {
+    const fresh = await serverApi.probe(row.id)
+    applyLocal(list.value.map((s) => (s.id === row.id ? fresh : s)))
+  } finally {
+    const next = { ...probing.value }
+    delete next[row.id]
+    probing.value = next
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -202,7 +219,7 @@ onMounted(load)
   <div>
     <PageHeader>
       <template #actions>
-        <el-button icon="Refresh" @click="load">刷新状态</el-button>
+        <el-button icon="Refresh" @click="load">刷新</el-button>
         <el-button v-if="canEdit" type="primary" icon="Plus" @click="openCreate">新增区服</el-button>
       </template>
     </PageHeader>
@@ -236,9 +253,12 @@ onMounted(load)
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="连通" min-width="110">
+        <el-table-column label="连通" min-width="160">
           <template #default="{ row }">
-            <span class="status-dot" :class="row.reachable ? 'success' : 'danger'">{{ row.reachable ? '可达' : '不可达' }}</span>
+            <span v-if="probing[row.id]" class="status-dot info">检测中</span>
+            <span v-else-if="!row.probed_at" class="status-dot info">未检测</span>
+            <span v-else class="status-dot" :class="row.reachable ? 'success' : 'danger'">{{ row.reachable ? '可达' : '不可达' }}</span>
+            <el-button link type="primary" :loading="probing[row.id]" @click="probe(row)">检测</el-button>
           </template>
         </el-table-column>
         <el-table-column label="在线人数" min-width="110">

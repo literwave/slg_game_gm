@@ -52,6 +52,7 @@ func New(d Deps) *gin.Engine {
 	servers := authed.Group("/servers")
 	servers.GET("", d.GameServer.List)
 	servers.POST("", admin, d.GameServer.Create)
+	servers.POST("/:id/probe", d.GameServer.Probe)
 	servers.PUT("/:id", admin, d.GameServer.Update)
 	servers.DELETE("/:id", admin, d.GameServer.Delete)
 

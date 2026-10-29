@@ -16,14 +16,26 @@ func NewGameServerHandler(servers *service.GameServerService) *GameServerHandler
 	return &GameServerHandler{servers: servers}
 }
 
-// List GET /servers?status=1 时附带实时在线人数。
 func (h *GameServerHandler) List(c *gin.Context) {
-	list, err := h.servers.List(c.Request.Context(), c.Query("status") == "1")
+	list, err := h.servers.List(c.Request.Context())
 	if err != nil {
 		response.Error(c, err)
 		return
 	}
 	response.OK(c, list)
+}
+
+func (h *GameServerHandler) Probe(c *gin.Context) {
+	id, ok := objectIDParam(c, "id")
+	if !ok {
+		return
+	}
+	view, err := h.servers.Probe(c.Request.Context(), id)
+	if err != nil {
+		response.Error(c, err)
+		return
+	}
+	response.OK(c, view)
 }
 
 func (h *GameServerHandler) Create(c *gin.Context) {

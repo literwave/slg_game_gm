@@ -132,7 +132,7 @@ onMounted(load)
     <el-card>
       <template #header>
         <div class="section-title">
-          <el-icon><Monitor /></el-icon>区服实时状态
+          <el-icon><Monitor /></el-icon>区服状态
           <span class="extra"><el-button size="small" icon="Refresh" @click="load">刷新</el-button></span>
         </div>
       </template>
@@ -153,11 +153,15 @@ onMounted(load)
         </el-table-column>
         <el-table-column label="连通" min-width="110">
           <template #default="{ row }">
-            <span class="status-dot" :class="row.reachable ? 'success' : 'danger'">{{ row.reachable ? '可达' : '不可达' }}</span>
+            <span v-if="!row.probed_at" class="status-dot info">未检测</span>
+            <span v-else class="status-dot" :class="row.reachable ? 'success' : 'danger'">{{ row.reachable ? '可达' : '不可达' }}</span>
           </template>
         </el-table-column>
         <el-table-column label="在线人数" min-width="110">
-          <template #default="{ row }">{{ formatNumber(row.online) }}</template>
+          <template #default="{ row }">
+            <b v-if="row.reachable">{{ formatNumber(row.online) }}</b>
+            <span v-else style="color: var(--gm-text-secondary)">-</span>
+          </template>
         </el-table-column>
         <el-table-column label="开服时间" min-width="180">
           <template #default="{ row }">{{ formatTime(row.open_at) }}</template>

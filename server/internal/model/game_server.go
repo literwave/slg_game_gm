@@ -24,6 +24,9 @@ type GameServer struct {
 	Status    ServerStatus       `bson:"status" json:"status"`
 	OpenAt    time.Time          `bson:"open_at" json:"open_at"`
 	Remark    string             `bson:"remark" json:"remark"`
+	Online    int                `bson:"online" json:"online"`
+	Reachable bool               `bson:"reachable" json:"reachable"`
+	ProbedAt  *time.Time         `bson:"probed_at,omitempty" json:"probed_at,omitempty"`
 	CreatedAt time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time          `bson:"updated_at" json:"updated_at"`
 }

@@ -18,7 +18,7 @@ func NewDashboardService(servers *GameServerService, mails *repository.MailRepo)
 }
 
 func (s *DashboardService) Stats(ctx context.Context) (*dto.DashboardResp, error) {
-	views, err := s.servers.List(ctx, true)
+	views, err := s.servers.List(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -41,6 +41,7 @@ export interface GameServer {
   updated_at: string
   online: number
   reachable: boolean
+  probed_at?: string | null
   mock: boolean
 }
 

@@ -75,9 +75,7 @@ type GameServerReq struct {
 
 type GameServerView struct {
 	model.GameServer
-	Online    int  `json:"online"`
-	Reachable bool `json:"reachable"`
-	Mock      bool `json:"mock"`
+	Mock bool `json:"mock"`
 }
 
 // ---------- 玩家 ----------
