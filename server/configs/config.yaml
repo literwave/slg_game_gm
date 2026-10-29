@@ -1,0 +1,23 @@
+server:
+  addr: ":8080"
+  mode: debug             # debug | release
+  web_dist: "../web/dist" # 前端构建产物目录，留空则不托管前端
+
+mongo:
+  uri: "mongodb://127.0.0.1:27017"
+  database: "slg_gm"
+  timeout_seconds: 5
+
+jwt:
+  secret: "change-me-in-production"
+  expire_hours: 24
+
+game:
+  mock: true              # true: 使用内存模拟的游戏服，无需真实游戏服即可联调
+  sign_secret: "gm-sign-secret"
+  timeout_seconds: 5
+
+admin:
+  # 首次启动时若不存在该账号则自动创建超级管理员
+  username: admin
+  password: admin123

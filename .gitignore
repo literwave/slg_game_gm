@@ -1,0 +1,19 @@
+# server
+server/bin/
+*.exe
+
+# web
+web/node_modules/
+web/dist/
+
+# misc
+.DS_Store
+.idea/
+.vscode/
+*.log
+
+# secrets
+.env
+.env.*
+*.pem
+credentials.json
